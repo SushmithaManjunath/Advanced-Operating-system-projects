@@ -1,0 +1,89 @@
+
+
+steps for executions:
+
+1.g++ backendS.cpp -o backendS -lpthread
+
+2.g++ frontendS.cpp -o frontendS -lpthread
+
+3.g++ clientS.cpp -o clientS
+
+4. ./backendS <serverportnumber1> 1
+
+5. ./backendS <serverportnumber2> 2
+
+6. ./backendS <serverportnumber3> 3
+
+7. ./frontend <localhost> <clientportnumber> <serverportnumber1>  <serverportnumber2> <serverportnumber3> 
+
+8. ./clientS <localhost> <clientportnumber>
+
+
+
+
+
+
+
+
+
+*************************************************************************************************************************************************************************************
+Frontend server
+
+1.Three seperate buffers are being used for each of the 3 servers.
+2.Accepts 6 command line aruments i.e client_port_number,and port_numbers of all 3 servers along with the file name.
+3.flag  "NW" is being used to keep track of number of not working servers initially it will be 0 assuming alls server works.
+4.(setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) - this function is being used SO_REUSEADDR Specifies that the rules used in validating addresses supplied to bind() should allow reuse of local addresses, if this is supported by the protocol. This option takes an int value. This is a Boolean option.
+5.Now socket connection is made with 3 servers.
+6.Connection is made with the client process
+7.pthread_create( &t , NULL ,  handler_function , (void*) new_socketfd) < 0) - is used MULTITHREADING is done for handling each client request. 
+8.handler_function() - handles 2phase commit and locking scheme
+9.reads multiple requests from clients
+10.pthread_mutex_lock(&mutex)- mutexs are used for locking 
+11.Timeout values are set using "struct timeval"
+11.Based on value of NW flag, COMMAND will be sent to the server
+12.(setsockopt (socketfd1, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout_values,sizeof(struct timeval))-- is to use setsockopt() to set the socket's SO_RCVTIMEO option.
+13.OK message is being read from all 3 servers.
+14.when OK has been received from all the servers check if response has been received from all of them if not, then think of maintaining data consistency
+15.If all servers are ready to commit,send global commit to all of them.
+16.If even one of them sends a NO, ABORT the transaction and restart the transaction.
+17.if one of them do not reply/ one server crashes COMMIT is sent
+18.Read OK from Servers.
+19.Write the response to the client.
+
+******************************************************************************************************************************************************************************
+
+Backend Servers
+
+1.Structure called RECORDS is used for storing the account_number and account_balance.
+2.It takes 3 command line arguments i.e servername, coordinator_port and  Server_number
+3.'Transaction_record' file will be created for each of the server
+4.fopen(file_name,"w")- is used to read the file with write permission
+5.setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse))- used to reuse the port
+6.listening to connect to the clients
+7.Reading the shared buffer for the commands from frontend server
+8.copy the transaction to "transaction" array
+9.Writting YES or NO to the coordinator.
+10.reading commit/abort msg from coordinator
+11.check if it is global commit msg or abort msg
+12.parse transaction array and perform the task
+13.If create , create an account id and return the account number
+14.If QUERY , query for checking account balance and return account number 
+15.If UPDATE, update a record and return account number
+16.If QUIT, send ready to commit msg to coordinator
+17.If it is global abort dont save data into file
+
+***************************************************************************************************************************************************************************************
+Client
+
+1.Socket structures are defined
+2.Client accepts hostname and portnumber as the argument
+3.Connects to the frontend sserver 
+4.Receives OK from the coordinator
+5.Receives commands from the user
+6.writing the command input taken by user to buffer
+7.converting the command to uppercase if the command is in lowercase 
+  by using islower() and toupper() functions.
+8.writing to the coordinator
+9.reading the final response from the coordinator 
+10.checking whether it is a OK msg from coordinator to close the connection.
+11.closing the socket
