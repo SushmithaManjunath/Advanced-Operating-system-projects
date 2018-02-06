@@ -1,0 +1,7 @@
+101 Sushmitha 1200
+102 Aishwarya 1300
+103 Shubham 3456
+104 Deepthi 2222
+105 Rashmi 9876
+106 Priyanka 9000
+120 john 20000
